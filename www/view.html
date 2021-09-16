@@ -1,0 +1,14 @@
+<h1>{{.Username}}</h1>
+
+<!-- <p>Nickname: {{.Nickname}} [<a href="/edit/{{.Username}}">edit</a>]</p> -->
+
+<form action="/updatenickname/{{.Username}}" method="POST">
+    <div><a>Nickname: </a><textarea name="nickname" rows="1" cols="20">{{printf "%s" .Nickname}} </textarea>
+    <input type="submit" value="Update Nickname" /></div>
+</form>
+
+<div><a target="_blank" href="/showpic/{{.PicName}}"> Profile Picture</a></div>
+<form action="/upload/{{.Username}}" method="post" enctype="multipart/form-data">
+    <input type="file" name="image" />
+    <input type="submit" value="Update Picture"/>
+</form>

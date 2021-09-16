@@ -1,0 +1,6 @@
+<h1> Editing {{.Username}} </h1>
+
+<form action="/updatenickname/{{.Username}}" method="POST">
+<div><textarea name="nickname" rows="20" cols="80">{{printf "%s" .Nickname}} </textarea></div>
+<div><input type="submit" value="Save" /></div>
+</form>
