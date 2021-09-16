@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/pkg/errors"
 )
 
 
@@ -30,24 +31,12 @@ func InitPool() {
 			//最大的空闲连接数，表示即使没有redis连接时依然可以保持N个空闲的连接，而不被清除，随时处于待命状态。
 			MaxIdle:         1,
 			//最大的激活连接数，表示同时最多有N个连接
-			MaxActive:       10,
+			MaxActive:       200,
 			//最大的空闲连接等待时间，超过此时间后，空闲连接将被关闭
-			IdleTimeout:     180 * time.Second,
+			IdleTimeout:     10 * time.Second,
 			//Wait:            false,
 			//MaxConnLifetime: 0,
 			}
-	}
-}
-
-func test() {
-	c1 := RedisClient.Get()
-	defer c1.Close()
-
-	c1.Do("SET", "xhc", "123")
-
-	r, err := c1.Do("GET","xhc")
-	if err == nil {
-		fmt.Println(string(r.([]byte)))
 	}
 }
 
@@ -64,6 +53,10 @@ func SetProfile(username string, profile string) {
 
 func GetProfile(username string) (string, error) {
 	c1 := RedisClient.Get();
+	if c1 == nil {
+		fmt.Println("GetProfile err not redisclient ")
+		return "", errors.New("redisclient too many connection")
+	}
 	defer c1.Close()
 
 	res, err := c1.Do("GET", "profile" + username)
@@ -76,8 +69,11 @@ func GetProfile(username string) (string, error) {
 }
 
 func SetToken(username string, token string) {
-
 	c1 := RedisClient.Get()
+	if c1 == nil {
+		fmt.Println("SetToken err not redisclient ")
+		return
+	}
 	defer c1.Close()
 	_, err := c1.Do("SET", "token" + username, token)
 
@@ -88,6 +84,10 @@ func SetToken(username string, token string) {
 
 func GetToken(username string) string {
 	c1 := RedisClient.Get();
+	if c1 == nil {
+		fmt.Println("GetToken err not redisclient ")
+		return ""
+	}
 	defer c1.Close()
 
 	res, err := c1.Do("GET", "token" + username)

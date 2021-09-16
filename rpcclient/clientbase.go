@@ -35,7 +35,7 @@ func GetAuth(username string, password string) (bool, string, string, string, er
 	// new Message
 	authinfo := protocol.AuthInfo{ 
 		Username: username, 
-		Token: token.GenToken(username, token.Sha1(password)), 
+		Token: token.GenToken(username, []byte(token.Sha1(password))), 
 		Reqid: reqid,
 	}
 	//Marshal
