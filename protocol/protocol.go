@@ -14,7 +14,7 @@ type ProtocolBase interface {
 
 type AuthInfo struct {
 	Username string
-	Password string
+	Token string
 	Reqid    int
 }
 

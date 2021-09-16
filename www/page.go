@@ -34,9 +34,6 @@ func (p *profile) save() error {
 }
 
 func loadProfile(username string) (*profile, error) {
-	// filename := username + ".jpg"
-	// picture, _ := ioutil.ReadFile(filename)
-
 	_, u, n, p, err := rpcclient.GetAuth(username, "123456")
 	if err != nil {
 		fmt.Println("loadProfile failed, ", err)
@@ -64,6 +61,7 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("rediret to view page after auth ", res, u, n, p, err)
 
 	pfile := &profile{Username: u, Nickname: n, PicName: p}
+	
 	renderTemplate(w, "view", pfile)
 }
 

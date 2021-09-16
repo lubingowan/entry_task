@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "bufio"
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
@@ -12,6 +11,7 @@ import (
 	"entry_task/mysqlconn"
 	"entry_task/protocol"
 	"entry_task/redisconn"
+	"entry_task/token"
 )
 
 func peekhead(buff []byte) (uri int32, length int32, e error) {
@@ -57,31 +57,33 @@ func doRead(conn net.Conn) (uri int32, buff []byte) {
 } 
 
 func onAuthInfo(authinfo protocol.AuthInfo, conn net.Conn) {
-	password := redisconn.GetPassword(authinfo.Username)
+	redistoken := redisconn.GetToken(authinfo.Username)
 
-	fmt.Println("query redis, ", password)
+	fmt.Println("query redis, ", redistoken)
 
 	authres := protocol.AuthResult{
-		Username: authinfo.Username, 
+		Username: authinfo.Username,
 		Result: false, 
-		Reqid: authinfo.Reqid }
+		Reqid: authinfo.Reqid,
+	}
 
-	if len(password) == 0 {
+	if len(redistoken) == 0 {
 		p, err := mysqlconn.QueryProfile(authinfo.Username)
 		if err != nil {
 			fmt.Println("onAuthInfo query db failed, ", err)
 			authres.Result = false
 		} else {
-			fmt.Println(p, " authinfo.password ", authinfo.Password, p.Password == authinfo.Password, " ", p.Password, "-", authinfo.Password)
-			if p.Password == authinfo.Password {
+			if token.CheckToken(authinfo.Token, p.Username, p.Password) {
 				authres.Result = true
 				authres.Nickname = p.Nickname
-				authres.Picture = p.Picture
+				if p.Picture != nil {
+					authres.Picture = *p.Picture
+				}
 				defer storeProfile(&p)
 			}
 		}
 	} else {
-		if password == authinfo.Password {
+		if token.CheckTokenByToken(authinfo.Token, redistoken) {
 			authres.Result = true
 
 			p, err := redisconn.GetProfile(authinfo.Username)
@@ -96,7 +98,9 @@ func onAuthInfo(authinfo protocol.AuthInfo, conn net.Conn) {
 			}
 
 			authres.Nickname = pf.Nickname
-			authres.Picture = pf.Picture
+			if pf.Picture != nil {
+				authres.Picture = *pf.Picture
+			}
 		}
 	}
 
@@ -133,8 +137,12 @@ func onUpdateNickname(req protocol.UpdateNickname, conn net.Conn) {
 	response := protocol.UpdateNicknameRes{ 
 		Username: req.Username, 
 		Nickname: req.Nickname, 
-		Picture: profile.Picture, 
-		Reqid: req.Reqid}
+		Reqid: req.Reqid,
+	}
+
+	if profile.Picture != nil {
+		response.Picture = *profile.Picture
+	} 
 
 	res, err := protocol.Marshall(&response)
 	if err != nil {
@@ -165,7 +173,7 @@ func onUpdatePicture(req protocol.UpdatePicture, conn net.Conn) {
 		return;
 	}
 
-	profile.Picture = req.Picture
+	profile.Picture = &req.Picture
 
 	storeProfile(&profile)
 
@@ -207,7 +215,7 @@ func onGetProfile(req protocol.GetProfile, conn net.Conn) {
 	response := protocol.GetProfileRes{ 
 		Username: req.Username, 
 		Nickname: pf.Nickname,
-		Picture: pf.Picture,
+		Picture: *pf.Picture,
 	}
 
 	res, err := protocol.Marshall(&response)
@@ -220,7 +228,7 @@ func onGetProfile(req protocol.GetProfile, conn net.Conn) {
 
 
 func storeProfile(p *mysqlconn.Profile) {
-	redisconn.SetPassword(p.Username, p.Password)
+	redisconn.SetToken(p.Username, token.GenToken(p.Username, p.Password))
 
 	buff, err := json.Marshal(p)
 	if err != nil {
@@ -243,7 +251,7 @@ func Handle_conn(conn net.Conn) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Println(request.Username, " ", request.Password, " ", request.Reqid)
+		fmt.Println(request.Username, " ", request.Token, " ", request.Reqid)
 		onAuthInfo(request, conn)
 	
 	case 3: 

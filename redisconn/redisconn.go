@@ -75,24 +75,24 @@ func GetProfile(username string) (string, error) {
 	return string(res.([]byte)), nil
 }
 
-func SetPassword(username string, password string) {
+func SetToken(username string, token string) {
 
 	c1 := RedisClient.Get()
 	defer c1.Close()
-	_, err := c1.Do("SET", "password" + username, password)
+	_, err := c1.Do("SET", "token" + username, token)
 
 	if err != nil {
-		fmt.Println("setPassword set error ", err)
+		fmt.Println("SetToken set error ", err)
 	}
 }
 
-func GetPassword(username string) string {
+func GetToken(username string) string {
 	c1 := RedisClient.Get();
 	defer c1.Close()
 
-	res, err := c1.Do("GET", "password" + username)
+	res, err := c1.Do("GET", "token" + username)
 	if  err != nil || res == nil {
-		fmt.Println("set err = ", err)
+		fmt.Println("GetToken err = ", err)
 		return ""
 	}
 	return string(res.([]byte))

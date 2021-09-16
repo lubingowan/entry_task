@@ -10,11 +10,32 @@ import (
 type Profile struct {
     Username string `db:"username"`
     Nickname string `db:"nickname"`
-    Password string `db:"password"`
-	Picture  string `db:"picture"`
+    Password []byte `db:"password"`
+	Picture  *string `db:"picture"`
 }
 
 const dbconfig string = "debian-sys-maint:v1JyHtzDAaxVUWYY@tcp(localhost:3306)/my_test";
+
+func InsertProfile(p *Profile) (error) {
+	db, err := sqlx.Open("mysql", dbconfig)
+	if err != nil {
+		fmt.Println("connect database failed, ", err)
+		return err;
+	}
+
+    defer db.Close()
+
+    _, err = db.Exec("insert into profile(username, nickname, password) values(?,?,?)", 
+			p.Username, p.Nickname, p.Password)
+
+	if err != nil {
+        fmt.Println("QueryProfile exec failed, ", err)
+        return err
+    }
+
+	
+	return nil;
+}
 
 func QueryProfile(username string) (Profile, error) {
 	db, err := sqlx.Open("mysql", dbconfig)
